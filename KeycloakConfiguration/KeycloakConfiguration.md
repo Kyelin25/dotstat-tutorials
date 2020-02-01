@@ -28,3 +28,21 @@ This will take you to the following screen, where you can either import some JSO
 
 ![AddRealmForm](img/DotStatLocal.PNG "The Add Realm form")
 
+Once we hit "Create", we're catapulted into the realm itself, and we can start configuring it.
+
+![DotStatLocalRealm](img/DotStatLocalRealm.PNG "The New Realm")
+
+### Configuring the Realm
+
+Before we even start talking about clients and users, there's a lot of configuration you can do with the realm. Most of these are not strictly speaking necessary for working with DotStat, so I'm going to gloss over them, but you may like to check out the Email tab (necessary if you want Keycloak to verify email addresses or reset passwords... essentially if you're not simply using it as a go-between for some other identity provider).
+
+The only setting I'm going to draw particular attention to is "Require SSL" on the Login tab.
+
+![RequireSSL](img/RequireSSLSetting.PNG "The Require SSL Setting")
+
+This setting controls under what circumstances attempts to log into (or any attempt to retrieve tokens) Keycloak must be made using a HTTPS connection. Mine is set on "external requests", which means as long as the request is being made from the same host as Keycloak, it's okay to make it over insecure HTTP. This suits me, because I can't be bothered setting up SSL. If your Keycloak is hosted on a different server to where the requests will be coming from, you're faced with two choices.
+
+1. Set up SSL for your servers
+2. Set the setting to "none"
+
+Number 2 is a fine option if you're just playing around in a sandpit environment. However, under no circumstances should this **ever** be set to "none" in production. Keycloak is used by DotStat to provide OpenID and OAuth2 tokens. Both of these protocols **require** SSL to be secure.
