@@ -1,3 +1,5 @@
+# DRAFT
+
 # Disclaimer
 
 The purpose of this tutorial is to help do the minimum configuration to get a Keycloak server ready to work with the DotStat suite of products. It is not a guide on how to set it up securely, and taking any security advice from it would be exceptionally unwise. Use official documentation or advice from your organization's IT security team.
