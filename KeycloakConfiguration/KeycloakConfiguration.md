@@ -127,7 +127,7 @@ Now, click "Add user". This, oddly enough, will take us to the "Add user" page, 
 
 Hit "Save".
 
-![DotStatUserPage](img/DStatUserPage.PNG "The DStat User's Page")
+![DotStatUserPage](img/DStatUser.PNG "The DStat User's Page")
 
 Fantastic. Now let's give our new user a password by going to the Credentials tab, entering a new password and unchecking Temporary. Hit "Reset Password".
 
