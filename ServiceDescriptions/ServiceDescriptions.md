@@ -63,7 +63,7 @@ The following diagram indicates the dependencies that the components have on one
 ![JavaScriptDependencies](img/JavaScriptDependencies.png "The JavaScript Component Dependencies")
 
 ```
-Note: As we'll find out later, the [Proxy Service](#proxy-service) is sort of dependent on all the other components, but it will always depend on the [Config Service](#config-service).
+Note: As we'll find out later, the Proxy Service is sort of dependent on all the other components, but it will always depend on the Config Service.
 ```
 
 ## Third-Party Dependencies
@@ -96,14 +96,67 @@ Although the Config Service is how differences between [tenants](#tenants) are m
 
 #### Configuration Files
 
-The configuration files are stored in the *configs* folder in the deployed service. In this folder are two files, and some number of folders. The two files are the only two configuration files that do not vary based on tenant:
+The configuration files are stored in the *configs* folder in the deployed config service. In this folder are two files, and some number of folders. The two files are the only two configuration files that do not vary based on tenant:
 - [datasources.json](#datasources-file): This file describes all the [datasources](#datasources) available to the JavaScript components, as well as some extra information about them relevant largely to the [SDMX Faceted Search Service](#sdmx-faceted-search)
 - [tenants.json](#tenants-file): This file lists all the available tenants, as well as potentially some information about how their authentication works
 
-All the other configuration files are stored in subfolders classified by first which tenant they apply to, and then which application. From there, they're free to be organised however the application using them expects them to be.
+All the other configuration files are stored in subfolders classified by first which tenant they apply to, and then which application. From there, they're free to be organised however the application using them expects them to be. Generally, there will be a *settings.json* file containing general settings for the application, and likely an *i18n* subfolder containing multi-lingual resource text (e.g. for saying "No search result" in however many languages are supported). 
 
 Let's look an example. Let's say we want the settings file for Data Explorer, for the tenant with the id 'alakazam'. We would host it at 'configs/alakazam/data-explorer/settings.json'.
 
 ![ConfigTree](img/ConfigTree.png "A configuration tree.")
 
 The above screenshot shows a configs folder with a number of tenants, supporting a number of applications.
+
+The application part of the folder path is determined by the `appId`, a unique identifier each application is assigned. The current identifiers are:
+- data-explorer: The [Data Explorer](#data-explorer) application
+- data-lifecycle-manager: The [Data Lifecycle Manager](#data-lifecycle-manager) application
+- data-viewer: The [Data Viewer](#data-viewer) application
+
+#### Asset Files
+
+The asset files are stored in the *assets* folder in the deployed config service. In principle, like the configuration files, the assets are stored in subfolders classified by first which tenant they apply to, and then which application. However, you only have to look at the [Config Service repository](https://gitlab.com/sis-cc/.stat-suite/dotstatsuite-config/-/tree/develop/data/prod/assets) to see that this is not adhered to. {Nicolas-Review}
+
+![AssetsTree](img/AssetsTree.png "An assets tree.")
+
+The reason for this is that for a lot of the assets (images especially), the path to them is set in the appropriate settings configuration file, as relative from the assets root (e.g. `/assets/siscc/data-explorer/images/sis-cc-logo.png`), so there's no absolute **need** to structure their location any particular way, unlike the location of configuration files.
+
+```
+NOTE: It's only possible to use a relative path to assets if the Proxy Service is being used!
+```
+
+#### Datasources File
+
+The following is the datasources.json file in the Config Service repository, cut down to avoid unnecessary duplication. It will serve to explain how the file is used:
+
+```javascript
+{
+  "SIS-CC-stable": {
+    "url": "http://nsi-stable-siscc.redpelicans.com/rest",
+    "version": "1.0",
+    "categorySchemeId": "OECDCS1",
+    "agencyId": "OECD",
+    "hasRangeHeader": true,
+    "supportsReferencePartial": true,
+    "label": "SIS-CC-stable",
+    "indexed": true
+  },
+  "SIS-CC-reset": {
+    "url": "http://nsi-reset-siscc.redpelicans.com/rest",
+    "version": "1.0",
+    "categorySchemeId": "none",
+    "agencyId": "OECD",
+    "hasRangeHeader": true,
+    "supportsReferencePartial": true,
+    "label": "SIS-CC-reset",
+    "indexed": false
+  }
+```
+
+The file takes the form of a JSON object, with one property for each datasource you want to be available to the JavaScript components. The property name becomes the `id` of the datasource. The datasource objects themselves provide the following information:
+- A url, via the `url` property, which is always the base URL of the RESTful API (which must implement the SDMX REST API standard). In the case of the [NSI Services](#nsi-services), it'll always end with `/rest`.
+- A human-readable label for the datasource, provided by the `label` property. This will be displayed to the end-user in various user-interfaces.
+- Whether the datasource should be indexed by the [SDMX Faceted Search Service](#sdmx-faceted-search), indicated by the `indexed` property.
+- If the datasource is "indexable", a category scheme must be provided. Why precisely will be explained in the [SDMX Faceted Search Service](#sdmx-faceted-search) section, but it's defined precisely via the `agencyId`, `categorySchemeId` and `version` properties. The `version` property can be set to "latest" to always get the latest version of the category scheme. {Nicolas-Review}
+- Whether the datasource supports the Range HTTP Header, specified with the `hasRangeHeader` boolean. The Range header is used for paging results, and is an extension to the SDMX REST API standard, hence needing to specify if it's supported or not.
+- Whether the datasource supports the "referencepartial" value for the "details" query-string parameter, specified with the `supportsReferencePartial` boolean. See [here](https://github.com/sdmx-twg/sdmx-rest/wiki/Metadata-queries#the-detail-query-parameter-defining-the-amount-of-details) for a description of its use.
