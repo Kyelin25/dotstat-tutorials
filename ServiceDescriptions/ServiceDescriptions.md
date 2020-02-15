@@ -55,7 +55,7 @@ As described previously, the JavaScript components are all geared towards the en
 
 The following diagram indicates the dependencies that the components have on one another. By saying a component is *dependent* on another, I mean that an instance of the former will not function correctly when deployed without an instance of the latter to refer to. In the diagram, a solid line indicates a direct connection is required. A broken line indicates that the dependencies is referential (the component doesn't need to be able to reach its dependency).
 
-![JavaScriptDependencies](img/JavaScriptDepeneencies.PNG "The JavaScript Component Dependencies")
+![JavaScriptDependencies](img/JavaScriptDependencies.PNG "The JavaScript Component Dependencies")
 
 ## External Dependencies
 
