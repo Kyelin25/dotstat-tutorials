@@ -43,3 +43,20 @@ The answer to this question can fundamentally change how you perform the deploym
 
 Tenant-enabled JavaScript components (currently [Data Explorer](#data-explorer), [Data Viewer](#data-viewer) and [Data Lifecycle Manager](#data-lifecycle-manager)) all expect to see something in each request that identifies which tenant the request pertains to. This is done by passing the tenant id (for example, 'oecd') in either the 'x-tenant' header, or in the 'tenant' query-string parameter. How this gets set, and what happens if it isn't, is described later in the deployment instructions.
 
+# The JavaScript Components
+
+As described previously, the JavaScript components are all geared towards the end-user experience, accessing or administering SDMX via a browser. The including applications are (in rough order of increasing dependency):
+- [Config Service](#config-service)
+- [SDMX Faceted Search Service](#sdmx-faceted-search)
+- [Share Service](#share-service)
+- [Data Viewer](#data-viewer)
+- [Data Explorer](#data-explorer)
+- [Data Lifecycle Manager](#data-lifecycle-manager)
+
+The following diagram indicates the dependencies that the components have on one another. By saying a component is *dependent* on another, I mean that an instance of the former will not function correctly when deployed without an instance of the latter to refer to. In the diagram, a solid line indicates a direct connection is required. A broken line indicates that the dependencies is referential (the component doesn't need to be able to reach its dependency).
+
+![JavaScriptDependencies](img/JavaScriptDepeneencies.PNG "The JavaScript Component Dependencies")
+
+## External Dependencies
+
+In addition to 
