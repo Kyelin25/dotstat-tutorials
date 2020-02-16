@@ -166,6 +166,33 @@ The file takes the form of a JSON object, with one property for each datasource 
 - Whether the datasource supports the Range HTTP Header, specified with the `hasRangeHeader` boolean. The Range header is used for paging results, and is an extension to the SDMX REST API standard, hence needing to specify if it's supported or not.
 - Whether the datasource supports the "referencepartial" value for the "details" query-string parameter, specified with the `supportsReferencePartial` boolean. See [here](https://github.com/sdmx-twg/sdmx-rest/wiki/Metadata-queries#the-detail-query-parameter-defining-the-amount-of-details) for a description of its use.
 
+#### Tenants File
+
+The following is the tenants.json file in the Config Service repository, cut down to avoid unnecessary duplication. It will serve to explain how the file is used:
+
+```javascript
+{
+  "default": {
+    "id": "default",
+    "name": "default"
+  },
+  "oecd": {
+    "id": "oecd",
+    "name": "OECD",
+    "keycloak": { "realm": "OECD", "clientId": "app" }
+  },
+  "siscc": {
+    "id": "siscc",
+    "name": "SISCC",
+    "keycloak": { "realm": "OECD", "clientId": "app" }
+  }
+}
+```
+
+Like the [datasources file](#datasources-file), the file takes the form of a JSON object, with one property for each tenant available for use. The property name must match the `id` of the tenant {Nicolas-Review}. Other than the `id` property, the tenant object provides only:
+- A human-readable name for the tenant, via the `name` property
+- Optionally, some authentication configuration, in the `keycloak` property. The `keycloak` property is itself a JSON object, specifying the `realm` and `clientId` that should be used by JavaScript components when authenticating clients and making authorized calls to backend services
+
 ### Deployment Tips
 
 - Because the configuration files and assets are baked into the solution, if you're deploying from [built artefacts](https://sis-cc.gitlab.io/dotstatsuite-documentation/install-source-code/monotenant-install-from-artifacts/) or [containers](https://sis-cc.gitlab.io/dotstatsuite-documentation/install-docker/) you'll need to remember to delete them and replace them with your own. Mounted volumes is a great way to do this with containers
