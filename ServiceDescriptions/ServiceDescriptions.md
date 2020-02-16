@@ -82,15 +82,20 @@ In addition to having dependencies on one another, the JavaScript components hav
 The Config Service does not depend on any other JavaScript or third-party components.
 
 ### Depended On By
-- [SDMX Faceted Search Service](#sdmx-faceted-search)
-- [Share Service](#share-service)
-- [Data Viewer](#data-viewer)
-- [Data Explorer](#data-explorer)
-- [Data Lifecycle Manager](#data-lifecycle-manager)
+- [Proxy Service](#proxy-service): Direct connection required
+- [SDMX Faceted Search Service](#sdmx-faceted-search): Direct connection required
+- [Share Service](#share-service): Direct connection required
+- [Data Viewer](#data-viewer): Direct connection required
+- [Data Explorer](#data-explorer): Direct connection required
+- [Data Lifecycle Manager](#data-lifecycle-manager): Direct connection required
+
+### End-User Accessibility
+
+The assets path of the Config Service at minimum must be accessible from the user's browser for [Data Explorer](#data-explorer), [Data Viewer](#data-viewer) and [Data Lifecycle Manager](#data-lifecycle-manager) to function correctly.
 
 ### Description
 
-The Config Service provides all save one (the [Proxy Service](#proxy-service)) of the other JavaScript components with their configuration. It also serves up any tenant-specific assets (like images, css files, etc) that they need. At it's core, the Config Service is just a simple HTTP file server, serving configuration as JSON and other files as... other files.
+The Config Service provides all save one (the [Proxy Service](#proxy-service)) of the other JavaScript components with their configuration. It also serves up any tenant-specific assets (like images, css files, etc) that they need (this is how the Proxy Service takes a dependency on it). At it's core, the Config Service is just a simple HTTP file server, serving configuration as JSON and other files as... other files.
 
 Although the Config Service is how differences between [tenants](#tenants) are managed, it itself isn't actually **aware** of tenants, per se. The magic is managed by how the configuration files and asset files are organised on the server.
 
@@ -160,3 +165,88 @@ The file takes the form of a JSON object, with one property for each datasource 
 - If the datasource is "indexable", a category scheme must be provided. Why precisely will be explained in the [SDMX Faceted Search Service](#sdmx-faceted-search) section, but it's defined precisely via the `agencyId`, `categorySchemeId` and `version` properties. The `version` property can be set to "latest" to always get the latest version of the category scheme. {Nicolas-Review}
 - Whether the datasource supports the Range HTTP Header, specified with the `hasRangeHeader` boolean. The Range header is used for paging results, and is an extension to the SDMX REST API standard, hence needing to specify if it's supported or not.
 - Whether the datasource supports the "referencepartial" value for the "details" query-string parameter, specified with the `supportsReferencePartial` boolean. See [here](https://github.com/sdmx-twg/sdmx-rest/wiki/Metadata-queries#the-detail-query-parameter-defining-the-amount-of-details) for a description of its use.
+
+### Deployment Tips
+
+- Because the configuration files and assets are baked into the solution, if you're deploying from [built artefacts](https://sis-cc.gitlab.io/dotstatsuite-documentation/install-source-code/monotenant-install-from-artifacts/) or [containers](https://sis-cc.gitlab.io/dotstatsuite-documentation/install-docker/) you'll need to remember to delete them and replace them with your own. Mounted volumes is a great way to do this with containers
+- See more details in the [no proxy topology](#no-proxy-topology) section, but if you're deploying without a proxy, you'll need to use the full path (including server hostname) for all assets
+
+## Proxy Service
+
+### Repository
+[dotstatsuite-proxy](https://gitlab.com/sis-cc/.stat-suite/dotstatsuite-proxy)
+
+### Depends On
+- [Config Service](#config-service): Direct connection required
+
+The Proxy Service can also sort of depend on other configured JavaScript Component services. See the [Proxy Routing](#proxy-routing) section for more information.
+
+### Depended On By
+
+No other components depend directly on the Proxy Service, however, the default installation scenario assumes you have it set up in front of all services.
+
+### End-User Accessibility
+
+The Proxy Service must be end-user accessible.
+
+### Description
+
+The Proxy Service is intended to sit in front of the rest of the JavaScript Components and provide tenant-aware routing. The way this works is as follows:
+- All requests to any JavaScript component come through the proxy
+- Upon receiving a request, assuming it's not a health check or for a static asset (see [Proxy Routing](#proxy-routing) for details), the proxy captures the hostname of the request
+- The hostname is compared against a configured routing list, and if a match is found, that provides a target address and potentially a tenant (the tenant "default" is used if one is not provided)
+- The request is forwarded to the target, with a header set telling the target what tenant to serve the request for
+
+As hinted at in the tenant-aware routing steps, the Proxy Service also is responsible for making sure any requests for static asset files are directed appropriately to the [Config Service](#config-service).
+
+### Proxy Routing
+
+Assuming an incoming request is neither a health check or asset request (see the sections below on those), normal routing rules apply.
+
+How does the proxy decide which requests to route to which components? This information is encoded in the [routes.json](https://gitlab.com/sis-cc/.stat-suite/dotstatsuite-proxy/-/blob/develop/data/routes.json). Due to the fact that this linked file is specific to the OECD's hosted environment (which has multiple layers of ingress) it can be a little hard to extrapolate from. Let's look at a made-up example instead:
+```javascript
+{
+  {
+    "host": "dataexplorer-alakazam.com",
+    "target": "http://localhost:7000",
+    "tenant": "alakazam"
+  },
+  {
+    "host": "dataexplorer-opensesame.com",
+    "target": "http://localhost:7000",
+    "tenant": "opensesame"
+  },
+  {
+    "host": "dataviewer-alakazam.com",
+    "target": "http://localhost:7001",
+    "tenant": "alakazam"
+  },
+  {
+    "host": "dataviewer-opensesame.com",
+    "target": "http://localhost:7001",
+    "tenant": "opensesame"
+  }
+}
+```
+
+In this example, we're supporting a [Data Explorer](#data-explorer) and [Data Viewer](#data-viewer) instance, with two possible tenants. Our proxy is hosted on the same server as the two actual installations of the applications (because our target is localhost).
+
+So, if a request comes into the proxy with the hostname `dataexplorer-alakazam.com` it will get forwarded to whatever is listening on port 7000 in localhost. In order to tell what is presumably an instance of Data Explorer which tenant to serve up, the proxy attaches a `x-tenant` header with the value "alakazam".
+
+Of course, you've probably noted the issue here. You'll have to set up DNS rules of some sort so that all four of those hostnames all are routed to the same server.
+
+#### Proxy Routing - Healthcheck
+
+The first thing that the proxy checks when it receives a request is whether it's actually somebody checking the health of the proxy. It does this by checking if the path of the request begins with `/_healthcheck_` (it also allows terminating with a `/` or `?`). If so, it doesn't forward it on, and just reports back its healthcheck.
+
+#### Proxy Routing - Assets
+
+The second thing that the proxy checks when it receives a request is whether it's for a static asset. Static assets are hosted by the [Config Service](#config-service), to allow them to vary between tenants. If a request's path starts with `/assets` (it also allows terminating with a `/` or `?`, though the latter would be confusing), it will not go through the normal routing process (as the target application doesn't actually host the assets). Instead, the request is forwarded to the [Config Service](#config-service).
+
+For example, suppose the full request received by the proxy was `https://dataviewer-opensesame.com/assets/img/logo.png`. If that request was forwarded using the [proxy routing](#proxy-routing) rules, it would end up at an application that couldn't serve it. Instead, it's forwarded to the Config Service. If that was hosted at localhost:5007, the forwarded request would be `http://localhost:5007/assets/img/logo.png`.
+
+This asset routing is exactly why deploying without a proxy (usually because you have only one tenant) requires some changes to configuration, which is described in the [no proxy topology](#topologies-no-proxy) section.
+
+#### Proxy Routing - Advanced
+
+Technically, the "host" property in the `routes.json` file is a regular expression, so it is possible to perform relatively complicated matches. One possibility would be to alias a tenant or application name.
