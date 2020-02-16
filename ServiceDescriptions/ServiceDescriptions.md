@@ -93,6 +93,16 @@ The Config Service does not depend on any other JavaScript or third-party compon
 
 The assets path of the Config Service at minimum must be accessible from the user's browser for [Data Explorer](#data-explorer), [Data Viewer](#data-viewer) and [Data Lifecycle Manager](#data-lifecycle-manager) to function correctly.
 
+### Configuration Tips
+
+The Config Service is very light on configuration, because it **is** the source of it for so many other services.
+
+Like most of the JavaScript components, you can specify what host and port the service should listen on. For the Config Service this is done with the following environment variables:
+- HOST: Sets the host to listen on.
+- PORT`: Which port the service will listen on.
+
+The `NODE_ENV` environment variable lets the service know whether it's running in development, test or production.
+
 ### Description
 
 The Config Service provides all save one (the [Proxy Service](#proxy-service)) of the other JavaScript components with their configuration. It also serves up any tenant-specific assets (like images, css files, etc) that they need (this is how the Proxy Service takes a dependency on it). At it's core, the Config Service is just a simple HTTP file server, serving configuration as JSON and other files as... other files.
@@ -216,6 +226,19 @@ No other components depend directly on the Proxy Service, however, the default i
 
 The Proxy Service must be end-user accessible.
 
+### Configuration Tips
+
+The Proxy Service is very light on configuration, because it is very limited in its functionality.
+
+Routing to applications and tenants is set in the `data/routes.json` file.
+
+Unlike most of the other JavaScript components, you can only specify what port the service should listen on. This is because the proxy needs to pick up **all** incoming requests regardless of host. Set the port with the following environment variable:
+- PORT: Which port the service will listen on.
+
+Use the `CONFIG_URL` to tell the Proxy Service where to find the [Config Service](#config-service). This should be the URL that the Proxy Service uses to connect to it, **not** where the Config Service is hosted from the user's point of view. For example, if hosted on the same box, it might be `http://localhost:5007`.
+
+The `NODE_ENV` environment variable lets the service know whether it's running in development, test or production.
+
 ### Description
 
 The Proxy Service is intended to sit in front of the rest of the JavaScript Components and provide tenant-aware routing. The way this works is as follows:
@@ -277,3 +300,4 @@ This asset routing is exactly why deploying without a proxy (usually because you
 #### Proxy Routing - Advanced
 
 Technically, the "host" property in the `routes.json` file is a regular expression, so it is possible to perform relatively complicated matches. One possibility would be to alias a tenant or application name.
+
