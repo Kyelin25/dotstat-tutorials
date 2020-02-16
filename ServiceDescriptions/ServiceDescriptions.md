@@ -239,6 +239,8 @@ Use the `CONFIG_URL` to tell the Proxy Service where to find the [Config Service
 
 The `NODE_ENV` environment variable lets the service know whether it's running in development, test or production.
 
+The Proxy Service does not use the Config Service to obtain any configuration.
+
 ### Description
 
 The Proxy Service is intended to sit in front of the rest of the JavaScript Components and provide tenant-aware routing. The way this works is as follows:
@@ -301,3 +303,39 @@ This asset routing is exactly why deploying without a proxy (usually because you
 
 Technically, the "host" property in the `routes.json` file is a regular expression, so it is possible to perform relatively complicated matches. One possibility would be to alias a tenant or application name.
 
+### Deployment Tips
+
+- Because the `routes.json` is baked into the solution, if you're deploying from [built artefacts](https://sis-cc.gitlab.io/dotstatsuite-documentation/install-source-code/monotenant-install-from-artifacts/) or [containers](https://sis-cc.gitlab.io/dotstatsuite-documentation/install-docker/) you'll need to remember to delete it and replace it with your own. Mounted volumes is a great way to do this with containers
+
+## SDMX Faceted Search
+
+### Repository
+[dotstatsuite-sdmx-faceted-search](https://gitlab.com/sis-cc/.stat-suite/dotstatsuite-sdmx-faceted-search)
+
+### Depends On
+- [Config Service](#config-service): Direct connection required
+- [Solr](#solr): Direct connection required
+- [Redis](#redis): Direct connection required
+
+### Depended On By
+
+- [Data Explorer](#data-explorer): Connection through browser required
+
+### End-User Accessibility
+
+The SDMX Faceted Search must be end-user accessible (although you can block the admin sub-paths if you like).
+
+### Configuration Tips
+
+The SDMX Faceted Search has a bewildering array of configuration, but almost certainly you will not be using much of it.
+
+Unlike most of the other JavaScript components, you can only specify what port the service should listen on. Set the port with the following environment variable:
+- PORT: Which port the service will listen on.
+
+Use the `CONFIG_URL` to tell the Proxy Service where to find the [Config Service](#config-service). This should be the URL that the SDMX Faceted Search Service uses to connect to it, **not** where the Config Service is hosted from the user's point of view. For example, if hosted on the same box, it might be `http://localhost:5007`.
+
+The `NODE_ENV` environment variable lets the service know whether it's running in development, test or production.
+
+The SDMX Faceted Search uses the Config Service to retrieve a list of datasources to index, from the [datasources file](#datasources-file).
+
+### Description
