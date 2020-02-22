@@ -338,4 +338,38 @@ The `NODE_ENV` environment variable lets the service know whether it's running i
 
 The SDMX Faceted Search uses the Config Service to retrieve a list of datasources to index, from the [datasources file](#datasources-file).
 
+The administrative APIs (used to control indexing and retrieve reports) are secured through an API key, which should be set with the `API_KEY` environment variable to something hard to guess.
+
+```
+ALERT! Always specifically set the API_KEY environment variable in production!
+```
+
 ### Description
+
+The SDMX Faceted Search service is intended to enable users (at this stage through [Data Explorer](#data-explorer)) to perform "faceted searches" of dataflows stored in SDMX [datasources](#datasources). A decent definition of faceted search can be [found on Wikipedia](https://en.wikipedia.org/wiki/Faceted_search), but essentially think of applying a series of extra filters to a normal search. So, you might be searching for "running shoes", and one facet you could add to filter on could be "brand", with a selection of brands, and another could be "price", with some price bands.
+
+The service enables this by leaning heavily on a Solr instance to index dataflows from [datasources](#datasources) defined in the [Config Service's](#config-service) [datasources file](#datasources-file). The service also uses Redis to cache dynamic configuration values.
+
+### Deployment Tips
+
+- At this stage, there's no built-in service bus or job for re-indexing the SDMX Faceted Search. This means that as new dataflows are added to your datasource, they won't be picked up. Consider setting up a scheduled job (even just a cron job) that sends a POST request to http://search-service-url/admin/dataflows?api-key=yourapikey (see the configuration tips for what the API key is).
+
+# Share Service
+
+### Repository
+[dotstatsuite-share](https://gitlab.com/sis-cc/.stat-suite/dotstatsuite-share)
+
+### Depends On
+- [Config Service](#config-service): Direct connection required
+- [Redis](#redis): Direct connection required
+- Some sort of mail service (at the moment it is hardcoded to use RedPelican's MailGun instance)
+
+### Depended On By
+
+- [Data Explorer](#data-explorer): Connection through browser required
+
+### End-User Accessibility
+
+The Share must be end-user accessible.
+
+### Configuration Tips
