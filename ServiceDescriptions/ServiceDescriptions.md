@@ -84,7 +84,6 @@ The Config Service does not depend on any other JavaScript or third-party compon
 ### Depended On By
 - [Proxy Service](#proxy-service): Direct connection required
 - [SDMX Faceted Search Service](#sdmx-faceted-search): Direct connection required
-- [Share Service](#share-service): Direct connection required
 - [Data Viewer](#data-viewer): Direct connection required
 - [Data Explorer](#data-explorer): Direct connection required
 - [Data Lifecycle Manager](#data-lifecycle-manager): Direct connection required
@@ -329,14 +328,18 @@ The SDMX Faceted Search must be end-user accessible (although you can block the 
 
 The SDMX Faceted Search has a bewildering array of configuration, but almost certainly you will not be using much of it.
 
+The SDMX Faceted Search uses the Config Service to retrieve a list of datasources to index, from the [datasources file](#datasources-file).
+
 Unlike most of the other JavaScript components, you can only specify what port the service should listen on. Set the port with the following environment variable:
 - PORT: Which port the service will listen on.
 
-Use the `CONFIG_URL` to tell the Proxy Service where to find the [Config Service](#config-service). This should be the URL that the SDMX Faceted Search Service uses to connect to it, **not** where the Config Service is hosted from the user's point of view. For example, if hosted on the same box, it might be `http://localhost:5007`.
+Use the `CONFIG_URL` to tell the SDMX Faceted Search service where to find the [Config Service](#config-service). This should be the URL that the SDMX Faceted Search Service uses to connect to it, **not** where the Config Service is hosted from the user's point of view. For example, if hosted on the same box, it might be `http://localhost:5007`.
+
+Use the `REDIS_HOST` and `REDIS_PORT` environment variables to tell the SDMX Faceted Search service where to find the [Redis](#redis) instance it is supposed to be using to cache dynamic configuration.
+
+Use the `SOLR_HOST` and `SOLR_PORT` environment variables to tell the SDMX faceted Search service where to find the [Solr](#solr) instance. You can also specify what Solr core it should use with `SOLR_CORE`, but it's unlikely you'll need that different than the default of 'sdmx-facet-search'.
 
 The `NODE_ENV` environment variable lets the service know whether it's running in development, test or production.
-
-The SDMX Faceted Search uses the Config Service to retrieve a list of datasources to index, from the [datasources file](#datasources-file).
 
 The administrative APIs (used to control indexing and retrieve reports) are secured through an API key, which should be set with the `API_KEY` environment variable to something hard to guess.
 
@@ -354,22 +357,46 @@ The service enables this by leaning heavily on a Solr instance to index dataflow
 
 - At this stage, there's no built-in service bus or job for re-indexing the SDMX Faceted Search. This means that as new dataflows are added to your datasource, they won't be picked up. Consider setting up a scheduled job (even just a cron job) that sends a POST request to http://search-service-url/admin/dataflows?api-key=yourapikey (see the configuration tips for what the API key is).
 
-# Share Service
+## Share Service
 
 ### Repository
 [dotstatsuite-share](https://gitlab.com/sis-cc/.stat-suite/dotstatsuite-share)
 
 ### Depends On
-- [Config Service](#config-service): Direct connection required
 - [Redis](#redis): Direct connection required
 - Some sort of mail service (at the moment it is hardcoded to use RedPelican's MailGun instance)
 
 ### Depended On By
 
 - [Data Explorer](#data-explorer): Connection through browser required
+- [Data Viewer](#data-viewer): Connection through browser required
 
 ### End-User Accessibility
 
 The Share must be end-user accessible.
 
 ### Configuration Tips
+
+Unlike the other JavaScript components, absolutely no configuration is done via the [Config Service](#config-service). {Nicolas-Review}
+
+Use the `REDIS_HOST` and `REDIS_PORT` environment variables to tell the Share Service where to find the [Redis](#redis) instance it is supposed to be using to store chart and table definitions.
+
+The `NODE_ENV` environment variable lets the service know whether it's running in development, test or production.
+
+There are two "secret-setting" environment variables, `API_KEY` and `SECRET_KEY`. As near I can tell, the `API_KEY` variable is never actually used ({Nicolas-Review}), but the `SECRET_KEY` is very important, as it's used as part of the chart confirmation process (see [Chart Confirmation](#chart-confirmation) for more). Set it to something with high entropy.
+
+If doing a proper deployment (not just localhost for messing about), you'll almost certainly need to set the `SITE_URL` environment variable to the externally-visible  URL of your service, so that confirmation emails carry the correct URL. For example, say the Share Service is hosted externally on "https://share-service.org/share", that's what you should set your `SITE_URL` variable to. ({Nicolas-Review}: I think this will work with subfolders, but can you confirm?)
+
+It is possible to also provide a `CONFIRM_URL` environment variable, but this is only used if chart-creation requests don't include a confirmation url, which they always do ({Nicolas-Review}) so you can safely exclude this.
+
+It would be good if you could alter how the emails are sent, but you can't, because it's hardcoded. {Nicolas-Review}
+
+### Description
+
+The Share Service allows users to save and share charts and tables they've built through [Data Explorer](#data-explorer). It does this by saving their definition or even literally data in a [Redis](#redis) database. Whether it saves the table/chart definition or data depends on whether the user wants the saved chart/table to always show the latest data, or a snapshot.
+
+In order to avoid naughty or incompetent users just spamming the service and overloading your infrastructure, the service implements an IP rate limit. Additionally, table/chart definitions are only stored for a period of time unless creation is confirmed via an email.
+
+### Chart Confirmation
+
+What follows is a very brief explanation of the chart sharing process in regards to confirmation. This will focus only on the parts of the process that are relevant to deployment and configuration.
