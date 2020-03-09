@@ -97,8 +97,8 @@ The assets path of the Config Service at minimum must be accessible from the use
 The Config Service is very light on configuration, because it **is** the source of it for so many other services.
 
 Like most of the JavaScript components, you can specify what host and port the service should listen on. For the Config Service this is done with the following environment variables:
-- HOST: Sets the host to listen on.
-- PORT`: Which port the service will listen on.
+- `HOST`: Sets the host to listen on.
+- `PORT`: Which port the service will listen on.
 
 The `NODE_ENV` environment variable lets the service know whether it's running in development, test or production.
 
@@ -312,6 +312,7 @@ Technically, the "host" property in the `routes.json` file is a regular expressi
 [dotstatsuite-sdmx-faceted-search](https://gitlab.com/sis-cc/.stat-suite/dotstatsuite-sdmx-faceted-search)
 
 ### Depends On
+- [NSI Web Services](#nsi-services): Direct connection required
 - [Config Service](#config-service): Direct connection required
 - [Solr](#solr): Direct connection required
 - [Redis](#redis): Direct connection required
@@ -331,9 +332,9 @@ The SDMX Faceted Search has a bewildering array of configuration, but almost cer
 The SDMX Faceted Search uses the Config Service to retrieve a list of datasources to index, from the [datasources file](#datasources-file).
 
 Unlike most of the other JavaScript components, you can only specify what port the service should listen on. Set the port with the following environment variable:
-- PORT: Which port the service will listen on.
+- `PORT`: Which port the service will listen on.
 
-Use the `CONFIG_URL` to tell the SDMX Faceted Search service where to find the [Config Service](#config-service). This should be the URL that the SDMX Faceted Search Service uses to connect to it, **not** where the Config Service is hosted from the user's point of view. For example, if hosted on the same box, it might be `http://localhost:5007`.
+Use the `CONFIG_URL` environment variable to tell the SDMX Faceted Search service where to find the [Config Service](#config-service). This should be the URL that the SDMX Faceted Search Service uses to connect to it, **not** where the Config Service is hosted from the user's point of view. For example, if hosted on the same box, it might be `http://localhost:5007`.
 
 Use the `REDIS_HOST` and `REDIS_PORT` environment variables to tell the SDMX Faceted Search service where to find the [Redis](#redis) instance it is supposed to be using to cache dynamic configuration.
 
@@ -379,6 +380,10 @@ The Share Service must be end-user accessible.
 
 Unlike the other JavaScript components, absolutely no configuration is done via the [Config Service](#config-service). {Nicolas-Review}
 
+Like most of the JavaScript components, you can specify what host and port the service should listen on. For the Share Service this is done with the following environment variables:
+- `HOST`: Sets the host to listen on.
+- `PORT`: Which port the service will listen on.
+
 Use the `REDIS_HOST` and `REDIS_PORT` environment variables to tell the Share Service where to find the [Redis](#redis) instance it is supposed to be using to store chart and table definitions.
 
 The `NODE_ENV` environment variable lets the service know whether it's running in development, test or production.
@@ -423,3 +428,152 @@ No components depend directly on the Data Viewer, although the [Share Service](#
 The Data Viewer must be end-user accessible.
 
 ### Configuration Tips
+
+The Data Viewer sources a large amount of its configuration from the [Config Service](#config-service), and a lot of them will vary based on what tenant the application is serving. The majority of these are sourced from its settings.json file. This file is tenanted, which means depending on which tenant the Data Viewer is told it's acting as, it will retrieve a different settings.json file from the Config Service. It will always request the file with the following pattern:
+```
+{CONFIG_URL}/{tenant}/data-viewer/settings.json
+```
+
+Use the `CONFIG_URL` environment variable to tell the Data Viewer where to find the [Config Service](#config-service). This should be the URL that the Data Viewer uses to connect to it, **not** where the Config Service is hosted from the user's point of view. For example, if hosted on the same box, it might be `http://localhost:5007`.
+
+The `NODE_ENV` environment variable lets the service know whether it's running in development, test or production.
+
+Like most of the JavaScript components, you can specify what host and port the service should listen on. For the Data Viewer this is done with the following environment variables:
+- `SERVER_HOST`: Sets the host to listen on.
+- `SERVER_PORT`: Which port the service will listen on.
+
+Although the facility exists to specify a secret key with the `SECRET_KEY` environment variable, it's not used anywhere ({Nicolas-Review}), so don't worry about it.
+
+### The Settings File
+
+Some configuration of the Data Viewer application is done through the settings.json file (held in the [Config Service](#config-service)). It's likely that you'll need to set at least the following value:
+```javascript
+"share": {
+    "endpoint": "http://localhost/share-service"
+  },
+```
+
+The `share:endpoint` property is used to tell the Data Viewer how to contact the [Share Service](#share-service) for the purpose of retrieving chart and table definitions for display. Because this is done from the browser, make sure to use the location the Share Service is viewable from the browser, **not** from the Data Viewer application itself.
+
+Other configuration is largely display-oriented. The `theme:table` object is used to alter the colouring of various aspects of tables that are displayed ({Nicola-Review}: This bit is complete guesswork):
+```javascript
+"theme": {
+  "table": {
+    "yBg": "#B5CEEB", // Background colour of column headers
+    "yBgHover": "#c3d7ef", // This appears to do nothing
+    "yBgActive": "#7e90a4", // This appears to do nothing
+    "yFontHeader": "#1C2768", // Text colour for column headings (i.e. names of the dimensions)
+    "yFont": "#43679F", // Text colour for the column headers (i.e. the dimension values)
+    "zBg": "#386CAA", // Background colour of row sections
+    "zBgHover": "#5f89bb", // This appears to do nothing
+    "zBgActive": "#274b76", // This appears to do nothing
+    "zFontHeader": "#A2C2E4", // Text colour for row section headers (i.e. the names of the dimensions)
+    "zFont": "#FFFFFF", // Text colour for row sections (i.e. the dimension values)
+    "xBg": "#FFFFFF", // Background colour of table cells
+    "xBgHeader": "#D7E6F4", // Background colour of row headers. Also appears to be hover colour for table cells.
+    "xBgHover": "#dfebf6", // This appears to do nothing
+    "xBgActive": "#96a1aa", // This appears to do nothing
+    "xFontHeader": "#1C2768", // Text colour for row headers (including dimension name and values)
+    "xFont": "#43679F", // Text colour of table cells (i.e. the data colour)
+    "oFont": "#494444", // This appears to do nothing
+    "sBg": "#F0F0F0", // Background colour of blank spacing cells (used for formatting... not to be confused with data cells with no values)
+    "border": "#000000" // Colour of table cell borders
+  }
+}
+```
+
+### Description
+
+The Data Viewer application is intended to display a single chart or table shared via the [Share Service](#share-service). The chart/table is not alterable like it would be if viewed in [Data Explorer](#data-explorer).
+
+As Data Viewer is a largely browser-based application, it retrieves chart/table definitions from the [Share Service](#share-service) by the user's browser calling the Share Service's API.
+
+Like the [Data Explorer](#data-explorer), the Data Viewer relies on assets (such as CSS files or images) hosted by the [Config Service](#config-service).
+
+### Deployment Tips
+
+None so far.
+
+## Data Explorer
+
+### Repository
+[dotstatsuite-data-explorer](https://gitlab.com/sis-cc/.stat-suite/dotstatsuite-data-explorer)
+
+### Depends On
+- [NSI Web Services](#nsi-services): Connection through brower required
+- [Share Service](#share-service): Connection through browser required
+- [SDMX Faceted Search](#sdmx-faceted-search): Connection through browser required
+- [Config Service](#config-service): Direct connection and connection through browser required
+
+### Depended On By
+
+No components depend directly on the Data Explorer.
+
+### End-User Accessibility
+
+The Data Explorer must be end-user accessible.
+
+### Configuration Tips
+
+The Data Viewer sources a large amount of its configuration from the [Config Service](#config-service), and a lot of them will vary based on what tenant the application is serving. The majority of these are sourced from its settings.json file. This file is tenanted, which means depending on which tenant the Data Viewer is told it's acting as, it will retrieve a different settings.json file from the Config Service. It will always request the file with the following pattern:
+```
+{CONFIG_URL}/{tenant}/data-viewer/settings.json
+```
+
+Use the `CONFIG_URL` environment variable to tell the Data Viewer where to find the [Config Service](#config-service). This should be the URL that the Data Viewer uses to connect to it, **not** where the Config Service is hosted from the user's point of view. For example, if hosted on the same box, it might be `http://localhost:5007`.
+
+The `NODE_ENV` environment variable lets the service know whether it's running in development, test or production.
+
+Like most of the JavaScript components, you can specify what host and port the service should listen on. For the Data Viewer this is done with the following environment variables:
+- `SERVER_HOST`: Sets the host to listen on.
+- `SERVER_PORT`: Which port the service will listen on.
+
+Although the facility exists to specify a secret key with the `SECRET_KEY` environment variable, it's not used anywhere ({Nicolas-Review}), so don't worry about it.
+
+### The Settings File
+
+Some configuration of the Data Viewer application is done through the settings.json file (held in the [Config Service](#config-service)). It's likely that you'll need to set at least the following value:
+```javascript
+"share": {
+    "endpoint": "http://localhost/share-service"
+  },
+```
+
+The `share:endpoint` property is used to tell the Data Viewer how to contact the [Share Service](#share-service) for the purpose of retrieving chart and table definitions for display. Because this is done from the browser, make sure to use the location the Share Service is viewable from the browser, **not** from the Data Viewer application itself.
+
+Other configuration is largely display-oriented. The `theme:table` object is used to alter the colouring of various aspects of tables that are displayed ({Nicola-Review}: This bit is complete guesswork):
+```javascript
+"theme": {
+  "table": {
+    "yBg": "#B5CEEB", // Background colour of column headers
+    "yBgHover": "#c3d7ef", // This appears to do nothing
+    "yBgActive": "#7e90a4", // This appears to do nothing
+    "yFontHeader": "#1C2768", // Text colour for column headings (i.e. names of the dimensions)
+    "yFont": "#43679F", // Text colour for the column headers (i.e. the dimension values)
+    "zBg": "#386CAA", // Background colour of row sections
+    "zBgHover": "#5f89bb", // This appears to do nothing
+    "zBgActive": "#274b76", // This appears to do nothing
+    "zFontHeader": "#A2C2E4", // Text colour for row section headers (i.e. the names of the dimensions)
+    "zFont": "#FFFFFF", // Text colour for row sections (i.e. the dimension values)
+    "xBg": "#FFFFFF", // Background colour of table cells
+    "xBgHeader": "#D7E6F4", // Background colour of row headers. Also appears to be hover colour for table cells.
+    "xBgHover": "#dfebf6", // This appears to do nothing
+    "xBgActive": "#96a1aa", // This appears to do nothing
+    "xFontHeader": "#1C2768", // Text colour for row headers (including dimension name and values)
+    "xFont": "#43679F", // Text colour of table cells (i.e. the data colour)
+    "oFont": "#494444", // This appears to do nothing
+    "sBg": "#F0F0F0", // Background colour of blank spacing cells (used for formatting... not to be confused with data cells with no values)
+    "border": "#000000" // Colour of table cell borders
+  }
+}
+```
+
+### Description
+
+The Data Viewer application is intended to display a single chart or table shared via the [Share Service](#share-service). The chart/table is not alterable like it would be if viewed in [Data Explorer](#data-explorer).
+
+As Data Viewer is a largely browser-based application, it retrieves chart/table definitions from the [Share Service](#share-service) by the user's browser calling the Share Service's API.
+
+Like the [Data Explorer](#data-explorer), the Data Viewer relies on assets (such as CSS files or images) hosted by the [Config Service](#config-service).
+
+### Deployment Tips
