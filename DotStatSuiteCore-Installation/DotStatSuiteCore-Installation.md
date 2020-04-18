@@ -35,6 +35,16 @@ I'm going to be installing everything on one machine, but you can split up the s
 
 ![TopologyDrawing](img/DotStatSuiteCore_Topology.png "Topology Diagram")
 
+# Versions
+
+The DotStatSuite Core suite of services consists of a number of services, which all have their own versions. Furthermore, all of them rely on a set of databases, which are also versioned. To make things even more complicated, the NSI services and the structure database are not versioned by the same group as the Transfer and Authorization Management services and the data database. This can make working out what branches or tags to build a bit of a nightmare. However, not all is doom and gloom. It **is** possible to determine what version to use.
+
+Firstly, the parts of the suite hosted on Gitlab have *releases* detailed [here](https://sis-cc.gitlab.io/dotstatsuite-documentation/changelog/) on the ".Stat Suite documentation" website. Furthermore, this generally means that each of the repositories involved in a release will have a release tag corresponding **to** that release. For example, I'm building the .NET 3.2.0 release, so I'll be looking for tags like "release3.2.0". At this stage unfortunately if a repository doesn't take part in a release (because that service hasn't changed) it doesn't necessarily receive the release tag. In that case your best bet is probably to go to the next latest release tag.
+
+Secondly, generally in the release description (again, found [here](https://sis-cc.gitlab.io/dotstatsuite-documentation/changelog/)) it'll mention which version of the NSI services it's using. If not, your next step is to go to the appropriate branch/tag of the [plugin repository](https://gitlab.com/sis-cc/.stat-suite/dotstatsuite-core-sdmxri-nsi-plugin) (see above for how to work **that** out) and have a look at the CHANGELOG.md file, which should have the NSI version history of the plugin. You'll take the latest one, of course. For example, I'm building the .NET 3.2.0 so I'd look [here](https://gitlab.com/sis-cc/.stat-suite/dotstatsuite-core-sdmxri-nsi-plugin/-/blob/release3.2.0/CHANGELOG.md) and see that the latest version of the NSI services is 7.11.1.
+
+**COMEBACK**
+
 # Building from Source
 
 ## Prerequisites
@@ -94,6 +104,5 @@ git clone -b 7.11.1 --single-branch https://gitlab.com/sis-cc/.stat-suite/dotsta
 
 git clone -b release3.0.0 --single-branch https://gitlab.com/sis-cc/.stat-suite/dotstatsuite-core-transfer.git
 
-# Clone the AuthorizationManagement service repo
 git clone -b release3.0.0 --single-branch https://gitlab.com/sis-cc/.stat-suite/dotstatsuite-core-auth-management.git
 ```
