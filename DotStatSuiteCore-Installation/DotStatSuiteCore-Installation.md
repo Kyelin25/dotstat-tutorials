@@ -18,7 +18,7 @@ We will be building (from source) and deploying three different services:
 
 We'll also be building (from source) and utilizing two different database tools:
 
-- The MAAPI (Mapping Assistant API) database installation/upgrade tool, available (assuming you have a login) here: https://webgate.ec.europa.eu/CITnet/stash/projects/SDMXRI/repos/maapi.net/browse
+- The MAAPI (Mapping Assistant API) database installation/upgrade tool, available (assuming you have a login) here: https://webgate.ec.europa.eu/CITnet/stash/projects/SDMXRI/repos/maapi.net/browse, which has a submodule hosted here: https://webgate.eceuropa.eu/CITnet/stash/scm/sdmxri/authdb.sql.git
 - The DotStatSuite database installation/upgrade tool, available here: https://gitlab.com/sis-cc/.stat-suite/dotstatsuite-core-data-access
 
 # The Topology
@@ -50,6 +50,7 @@ Finally, unfortunately the repositories hosted on the Eurostat Bitbucket host ar
 
 - https://webgate.ec.europa.eu/CITnet/stash/projects/SDMXRI/repos/nsiws.net
 - https://webgate.ec.europa.eu/CITnet/stash/projects/SDMXRI/repos/maapi.net
+- https://webgate.eceuropa.eu/CITnet/stash/scm/sdmxri/authdb.sql.git (this is a submodule of the maapi.net repository)
 
 ## Sourcing your Source
 
@@ -58,17 +59,41 @@ The first step towards building all the various services and utilities we need i
 ```powershell
 # Clone the db-up repository
 & git clone -b $DataAccessRepoBranch --single-branch https://gitlab.com/sis-cc/.stat-suite/dotstatsuite-core-data-access.gitdotstatsuite-core-dbup
+
 # Clone the maapi.net tool repo
 & git clone -b $MaapiRepoBranch --single-branch --recurse-submodules https://${EurostatUserName}:$EurostatPassword@webgate.eceuropa.eu/CITnet/stash/scm/sdmxri/maapi.net.git
+
 # Ensure that the authdb.sql.git submodule is cloned
 & git clone -b $AuthDbRepoBranch --single-branch --recurse-submodules https://${EurostatUserName}:$EurostatPassword@webgate.eceuropa.eu/CITnet/stash/scm/sdmxri/authdb.sql.git maapi.net/src/Estat.Sri.Security/resources
+
 # Clone the NSI web service repo
 & git clone -b $NSIEurostatRepoBranch --single-branch https://${EurostatUserName}:$EurostatPassword@webgate.ec.europa.eu/CITnetstash/scm/sdmxri/nsiws.net.git
+
 # Clone the NSI web service plugin repo
 & git clone -b $NSIPluginRepoBranch --single-branch https://gitlab.com/sis-cc/.stat-suite/dotstatsuite-core-sdmxri-nsi-plugin.git
+
 # Clone the Transfer service repo
 & git clone -b $TransferRepoBranch --single-branch https://gitlab.com/sis-cc/.stat-suite/dotstatsuite-core-transfer.git
+
 # Clone the AuthorizationManagement service repo
 & git clone -b $AuthManagementRepoBranch --single-branch https://gitlab.com/sis-cc/.stat-suite/dotstatsuite-core-auth-management.git
 ```
 
+The first thing you'll notice is that it's heavily parameterized. This is because it's part of a set of Powershell functions I've set up to make producing and installing DotStatSuite Core packages easier (also, I'd really rather not post my Eurostat password here). The second thing is probably the weird `&` symbol at the front of each of the commands. This is because I'm calling the Git executable from Powershell. Here are the same commands with the parameters filled in with example values, as you might call them in the terminal on a Linux machine:
+
+```sh
+git clone -b release3.0.0 --single-branch https://gitlab.com/sis-cc/.stat-suite/dotstatsuite-core-data-access.gitdotstatsuite-core-dbup
+
+git clone -b 1.25.1 --single-branch --recurse-submodules https://ben:password@webgate.eceuropa.eu/CITnet/stash/scm/sdmxri/maapi.net.git
+
+git clone -b 1.0.1 --single-branch --recurse-submodules https://ben:password@webgate.eceuropa.eu/CITnet/stash/scm/sdmxri/authdb.sql.git maapi.net/src/Estat.Sri.Security/resources
+
+git clone -b 7.11.1 --single-branch https://ben:password@webgate.ec.europa.eu/CITnetstash/scm/sdmxri/nsiws.net.git
+
+git clone -b 7.11.1 --single-branch https://gitlab.com/sis-cc/.stat-suite/dotstatsuite-core-sdmxri-nsi-plugin.git
+
+git clone -b release3.0.0 --single-branch https://gitlab.com/sis-cc/.stat-suite/dotstatsuite-core-transfer.git
+
+# Clone the AuthorizationManagement service repo
+git clone -b release3.0.0 --single-branch https://gitlab.com/sis-cc/.stat-suite/dotstatsuite-core-auth-management.git
+```
