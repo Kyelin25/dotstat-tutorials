@@ -43,7 +43,19 @@ Firstly, the parts of the suite hosted on Gitlab have *releases* detailed [here]
 
 Secondly, generally in the release description (again, found [here](https://sis-cc.gitlab.io/dotstatsuite-documentation/changelog/)) it'll mention which version of the NSI services it's using. If not, your next step is to go to the appropriate branch/tag of the [plugin repository](https://gitlab.com/sis-cc/.stat-suite/dotstatsuite-core-sdmxri-nsi-plugin) (see above for how to work **that** out) and have a look at the CHANGELOG.md file, which should have the NSI version history of the plugin. You'll take the latest one, of course. For example, I'm building the .NET 3.2.0 so I'd look [here](https://gitlab.com/sis-cc/.stat-suite/dotstatsuite-core-sdmxri-nsi-plugin/-/blob/release3.2.0/CHANGELOG.md) and see that the latest version of the NSI services is 7.11.1.
 
-**COMEBACK**
+Finally you need to work out what versions of the database tools you need. This is fairly easy for the DotStatSuite database tool (hosted [here](https://gitlab.com/sis-cc/.stat-suite/dotstatsuite-core-data-access)) as it follows the same *release* tag pattern as the rest of the Gitlab repositories. From there in order to work out what version of the MAAPI database tool you need, you can either go check the changelog, or the DotStat.MappingStore.csproj reference.
+
+ If looking at the changelog, I (using .NET 3.2.0) would go [here](https://gitlab.com/sis-cc/.stat-suite/dotstatsuite-core-data-access/-/blob/release3.2.0/CHANGELOG.md) and see which version of the MSDB we're on (6.8 in this case). Then, I would go to the [maapi.net changelog](https://webgate.ec.europa.eu/CITnet/stash/projects/SDMXRI/repos/maapi.net/browse/CHANGELOG.md) and find the latest repository version for that MSDB version (in my case, 1.25.2 as 1.25.3 uses MSDB version 6.9).
+
+ If looking at the csproj reference, I would go to the [DotStat.MappingStore.csproj file](https://gitlab.com/sis-cc/.stat-suite/dotstatsuite-core-data-access/-/blob/release3.2.0/DotStat.MappingStore/DotStat.MappingStore.csproj) for my release, and simply take whatever version of the `Estat.Sri.Sdmx.MappingStore.Store` package is in use (in my case, 1.25.1). Either way I'll end up with the correct database versions.
+
+ By following these steps, I've decided I'm going to be pulling the following branches/tags:
+ - NSI Services: 7.11.1
+ - NSI Plugin: release3.2.0
+ - Transfer Service: release3.0.0 (as it did not take part in release3.2.0)
+ - Authorization Management Service: release3.0.0 (as it did not take part in release3.2.0)
+ - DotStatSuite Db Tool: release3.2.0
+ - MAAPI Db Tool: 1.25.1
 
 # Building from Source
 
