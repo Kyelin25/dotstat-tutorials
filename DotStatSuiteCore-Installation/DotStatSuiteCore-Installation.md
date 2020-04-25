@@ -8,6 +8,8 @@ The purpose of this tutorial is to show an example of how to build and install t
 
 The purpose of this tutorial is to describe how one could go about building and deploying a simple working set of DotStatSuite Core services in a Windows environment. This means building on a Windows machine, and deploying **to** Windows machines. With this in mind, the scripting language I'll be using is Powershell, and the web server I'll be deploying on is Microsoft's Internet Information Services. However, a lot of the steps and information contained in this tutorial would be the same on other platforms, even if the exact commands might differ. Where possible I'll be noting what might be different.
 
+In this first part of the tutorial, we'll be focusing on obtaining the complete set of source code for the DotStatSuite Core set of applications, and on using it produce installation "packages".
+
 # The Cast of Characters
 
 We will be building (from source) and deploying three different services:
@@ -330,5 +332,156 @@ This is where things get curly. The DotStat suite uses the NSI web services as i
 First let's take a quick look at the entire Powershell method we're using to produce the NSI package. Then, we'll break it down step by step and explain why we're doing what we're doing.
 
 ```powershell
+Function Publish-NsiService{
+    Param(
+        [Parameter(Mandatory=$true)]
+        [string]
+        $NsiRepositoryDirectory,
 
+        [Parameter(Mandatory=$true)]
+        [string]
+        $NsiPluginRepositoryDirectory,
+
+        [Parameter(Mandatory=$true)]
+        [string]
+        $PackageOutputDirectory,
+
+        [string]
+        $Version="Release"
+    )
+
+    if( -not (Test-Path $NsiRepositoryDirectory -PathType Container ) ){
+        throw [System.IO.DirectoryNotFoundException]"Could not find NSI repository directory: $NsiRepositoryDirectory"
+    }
+
+    if( -not (Test-Path $NsiPluginRepositoryDirectory -PathType Container ) ){
+        throw [System.IO.DirectoryNotFoundException]"Could not find NSI plugin repository directory: $NsiPluginRepositoryDirectory"
+    }
+
+    # Create the output folder if it doesn't exist. We have to do this in this function because we're manually copying rather using dotnet publish
+    if( -not (Test-Path $PackageOutputDirectory -PathType Container ) )
+    {
+        New-Item $PackageOutputDirectory -ItemType Directory
+    }
+
+    Push-Location
+    Set-Location $NsiRepositoryDirectory
+
+    # Build the NSI web service. Do this step by step to avoid weird package downgrade issues. If you don't see these, just run a dotnet publish.
+    & dotnet restore ./NSIWebServices.sln
+    & dotnet build ./NSIWebServices.sln --no-restore -c $Version
+    & dotnet publish ./src/NSIWebServiceCore/NSIWebServiceCore.csproj --no-build -c $Version -o $PackageOutputDirectory
+
+    # Remove the built in app.config file as well as the sample files in the config folder, because we'll be replacing them at deploy-time.
+    Remove-Item $PackageOutputDirectory/config/app.config
+    Remove-Item $PackageOutputDirectory/config/*.sample
+
+    Set-Location $NsiPluginRepositoryDirectory
+
+    # Build the NSI plugin
+    & dotnet publish -c $Version -o ./out # Again, publish to a temporary out folder
+
+    # Copy the dlls we need from the plugin
+    $PluginsDirectory=Join-Path $PackageOutputDirectory Plugins
+
+    Copy-Item ./out/DotStat.Common.dll $PluginsDirectory
+    Copy-Item ./out/DotStat.DB.dll $PluginsDirectory
+    Copy-Item ./out/DotStat.Domain.dll $PluginsDirectory
+    Copy-Item ./out/DotStat.MappingStore.dll $PluginsDirectory
+    Copy-Item ./out/DotStat.NSI.DataRetriever.dll $PluginsDirectory
+    Copy-Item ./out/DotStat.NSI.RetrieverFactory.deps.json $PluginsDirectory
+    Copy-Item ./out/DotStat.NSI.RetrieverFactory.dll $PluginsDirectory
+
+    Pop-Location
+}
 ```
+
+This is quite a long function, but mostly it's just shuffling around files. Broadly speaking we can divide it into three sections:
+
+1. Build the NSI service
+1. Build the NSI plugin
+1. Copy the NSI plugin dlls into the NSI service's plugins folder
+
+#### Build the NSI Service
+
+We use the following Powershell code to build the NSI services themselves:
+
+```powershell
+# Build the NSI web service. Do this step by step to avoid weird package downgrade issues. If you don't see these, just run a dotnet publish.
+& dotnet restore ./NSIWebServices.sln
+& dotnet build ./NSIWebServices.sln --no-restore -c $Version
+& dotnet publish ./src/NSIWebServiceCore/NSIWebServiceCore.csproj --no-build -c $Version -o $PackageOutputDirectory
+```
+
+The reason we're doing this over several steps is because I was getting strange package version downgrade warnings doing it all in one step, so if you're doing this yourself, feel free to try it in one by simply removing the `--no-build` flag from the last command and using that. However, it does highlight the fact that you can break up the `restore`, `build` and `publish` actions if you like, and avoid rerunning any previous actions by using the `--no-X` commands.
+
+```powershell
+# Remove the built in app.config file as well as the sample files in the config folder, because we'll be replacing them at deploy-time.
+Remove-Item $PackageOutputDirectory/config/app.config
+Remove-Item $PackageOutputDirectory/config/*.sample
+```
+
+The next thing we do is to delete some sample configuration files (not strictly speaking necessary, but nice for neatness) and, more importantly, to delete the built-in `app.config` file. This file is read by the NSI services on startup to set up a lot of configuration (such as connection strings and whether it's a read-only or read-write service). However, it has a **lot** of guff in there that we won't need and we'll have to replace it at deploy-time anyway with one set up for our use.
+
+#### Build the NSI Plugin
+
+Having built the NSI services themselves, we now need to build the DotStat NSI plugin. We use the following Powershell to do so:
+
+```powershell
+# Move to the NSI plugin directory
+Set-Location $NsiPluginRepositoryDirectory
+
+# Build the NSI plugin
+& dotnet publish -c $Version -o ./out # Again, publish to a temporary out folder
+```
+
+We're simply moving to the directory the NSI plugin is located, then using the by now familiar `dotnet publish` command to build and publish it to a temporary folder. Why temporary? Well, that's because we have to copy **some** of the files produced into the NSI Service's Plugins folder so that it can pick them up when it starts up.
+
+#### Putting it All Together
+
+The final step is to insert the plugin libraries we built in the previous step into the Plugins folder:
+
+```powershell
+# Copy the dlls we need from the plugin into the NSI Service Plugins folder
+$PluginsDirectory=Join-Path $PackageOutputDirectory Plugins
+
+Copy-Item ./out/DotStat.Common.dll $PluginsDirectory
+Copy-Item ./out/DotStat.DB.dll $PluginsDirectory
+Copy-Item ./out/DotStat.Domain.dll $PluginsDirectory
+Copy-Item ./out/DotStat.MappingStore.dll $PluginsDirectory
+Copy-Item ./out/DotStat.NSI.DataRetriever.dll $PluginsDirectory
+Copy-Item ./out/DotStat.NSI.RetrieverFactory.deps.json $PluginsDirectory
+Copy-Item ./out/DotStat.NSI.RetrieverFactory.dll $PluginsDirectory
+```
+
+And that's it! We've got an installable (though it's still missing configuration) package for the NSI Services.
+
+#### Of Note
+
+Mostly of note here is the messing about we needed to do because the DotStat suite at this stage has to use a custom plugin to retrieve data. This meant that to produce one package we needed to build two repositories and then assemble them by copying a set of libraries from the plugin build. How do you know which libraries you need to copy? Well, you just kind of have to know. Luckily, there are official instructions (or at least were at the time of this writing) on the DotStat suite documentation pages [here](https://sis-cc.gitlab.io/dotstatsuite-documentation/install-source-code/windows-stat-core-services) that should let you know the current list of libraries.
+
+# Conclusion
+
+This concludes this section of the tutorial. To recap, we've cloned 6 repositories, then used them to build three services and two database installation tools. In doing so we had to make sure we were checking out a set of branches/tags that work together.
+
+The repositories were:
+
+- The MAAPI repository, hosted by Eurostat: https://webgate.ec.europa.eu/CITnet/stash/projects/SDMXRI/repos/maapi.net/browse (and its submodule: https://webgate.eceuropa.eu/CITnet/stash/scm/sdmxri/authdb.sql.git)
+- The DotStat suite Data Access repository: https://gitlab.com/sis-cc/.stat-suite/dotstatsuite-core-data-access
+- The NSI Service repository, hosted by Eurostat: https://webgate.ec.europa.eu/CITnet/stash/projects/SDMXRI/repos/nsiws.net/browse
+- The NSI Plugin repository: https://gitlab.com/sis-cc/.stat-suite/dotstatsuite-core-sdmxri-nsi-plugin
+- The Transfer Service repository: https://gitlab.com/sis-cc/.stat-suite/dotstatsuite-core-transfer
+- The Authorization Management Service repository: https://gitlab.com/sis-cc/.stat-suite/dotstatsuite-core-auth-management
+
+The services we built were:
+
+- The NSI Service
+- The Transfer Service
+- The Authorization Management Service
+
+The tools were built were:
+
+- The DotStatSuite Db Tool
+- The MAAPI Db Tool
+
+In the next tutorial we'll look at actually installing the DotStat suite, first by initializing our databases, then by installing the services.
