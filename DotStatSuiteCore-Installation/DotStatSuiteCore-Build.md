@@ -27,12 +27,12 @@ We'll also be building (from source) and utilizing two different database tools:
 
 There are as many ways to set up your DotStatSuite suite as there are flavours of ice-cream, possibly more. There are a number of dimensions you can tweak when setting up your topology, but the main one is going to be how many dataspaces you want. In brief, you can think of each dataspace as a single set of SDMX structures and data, as stored in the databases we're going to be setting up. Each instance of the NSI services we install will belong to a single dataspace, whereas the Transfer and (to some degree) Authorization Management services sit across multiple dataspaces.
 
-I'm going to be setting up a fairly common two-dataspace topology, representing the scenario where one space is used for design work, and the other is used for dissemination of statistics once they're ready for release. We'll be calling the two spaces design and disseminate respectively. For bonus points, we'll be creating two NSI service instances for the disseminate space; one internally-facing service that can upload SDMX structures, and another externally-facing service that cannot.
+I'm going to be setting up a fairly common two-dataspace topology, representing the scenario where one space is used for design work, and the other is used for dissemination of statistics once they're ready for release. We'll be calling the two spaces `design` and `disseminate` respectively. For bonus points, we'll be creating two NSI service instances for the disseminate space; one internally-facing service that can upload SDMX structures, and another externally-facing service that cannot.
 
 ```
 ASIDE
 
-I'm going to be installing everything on one machine, but you can split up the services however makes the most sense for your requirements, so long as the required communication channels are open. For example, it's probably not a great idea to have your externally-facing disseminate-space NSI service on the same server as your internally-facing disseminate-space NSI service.
+I'm going to be installing everything on one machine, but you can split up the services however makes the most sense for your requirements, so long as the required communication channels are open. For example, it's probably not a great idea to have your externally-facing disseminate-space NSI service on the same server as your internally-facing disseminate-space NSI service, and it's definitely not usually considered okay to host your services on the same server as your databases.
 ```
 
 ![TopologyDrawing](img/DotStatSuiteCore_Topology.png "Topology Diagram")
