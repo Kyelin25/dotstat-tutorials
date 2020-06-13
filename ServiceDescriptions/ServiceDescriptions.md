@@ -501,6 +501,8 @@ Like most of the JavaScript components, you can specify what host and port the s
 - `SERVER_HOST`: Sets the host to listen on.
 - `SERVER_PORT`: Which port the service will listen on.
 
+The `AUTH_SERVER_URL` should be the base URL at which Keycloak is accessible **from the user's browser**. So, you want the protocol and hostname that the browser would use to connect to it, not what Data Explorer would use. For example, if you're running everything locally, it might be `https://localhost:8080`.
+
 ### The Settings File
 
 Some configuration of the Data Explorer application is done through the settings.json file (held in the [Config Service](#config-service)). 
