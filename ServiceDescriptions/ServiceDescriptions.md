@@ -434,7 +434,7 @@ The Data Viewer sources a large amount of its configuration from the [Config Ser
 {CONFIG_URL}/{tenant}/data-viewer/settings.json
 ```
 
-Use the `CONFIG_URL` environment variable to tell the Data Viewer where to find the [Config Service](#config-service). This should be the URL that the Data Viewer uses to connect to it, **not** where the Config Service is hosted from the user's point of view. For example, if hosted on the same box, it might be `http://localhost:5007`.
+Use the `CONFIG_URL` environment variable to tell the Data Viewer where to find the [Config Service](#config-service). This should be the URL that the Data Viewer uses to connect to it, **not** where the Config Service is hosted from the user's point of view. For example, if hosted on the same box, it might be `http://localhost:5007`. If hosted in the same Docker network it might be http://config, assuming `config` is what the Config Service container name is.
 
 The `NODE_ENV` environment variable lets the service know whether it's running in development, test or production.
 
@@ -454,33 +454,6 @@ Some configuration of the Data Viewer application is done through the settings.j
 ```
 
 The `share:endpoint` property is used to tell the Data Viewer how to contact the [Share Service](#share-service) for the purpose of retrieving chart and table definitions for display. Because this is done from the browser, make sure to use the location the Share Service is viewable from the browser, **not** from the Data Viewer application itself.
-
-Other configuration is largely display-oriented. The `theme:table` object is used to alter the colouring of various aspects of tables that are displayed ({Nicola-Review}: This bit is complete guesswork):
-```javascript
-"theme": {
-  "table": {
-    "yBg": "#B5CEEB", // Background colour of column headers
-    "yBgHover": "#c3d7ef", // This appears to do nothing
-    "yBgActive": "#7e90a4", // This appears to do nothing
-    "yFontHeader": "#1C2768", // Text colour for column headings (i.e. names of the dimensions)
-    "yFont": "#43679F", // Text colour for the column headers (i.e. the dimension values)
-    "zBg": "#386CAA", // Background colour of row sections
-    "zBgHover": "#5f89bb", // This appears to do nothing
-    "zBgActive": "#274b76", // This appears to do nothing
-    "zFontHeader": "#A2C2E4", // Text colour for row section headers (i.e. the names of the dimensions)
-    "zFont": "#FFFFFF", // Text colour for row sections (i.e. the dimension values)
-    "xBg": "#FFFFFF", // Background colour of table cells
-    "xBgHeader": "#D7E6F4", // Background colour of row headers. Also appears to be hover colour for table cells.
-    "xBgHover": "#dfebf6", // This appears to do nothing
-    "xBgActive": "#96a1aa", // This appears to do nothing
-    "xFontHeader": "#1C2768", // Text colour for row headers (including dimension name and values)
-    "xFont": "#43679F", // Text colour of table cells (i.e. the data colour)
-    "oFont": "#494444", // This appears to do nothing
-    "sBg": "#F0F0F0", // Background colour of blank spacing cells (used for formatting... not to be confused with data cells with no values)
-    "border": "#000000" // Colour of table cell borders
-  }
-}
-```
 
 ### Description
 
@@ -515,65 +488,34 @@ The Data Explorer must be end-user accessible.
 
 ### Configuration Tips
 
-The Data Viewer sources a large amount of its configuration from the [Config Service](#config-service), and a lot of them will vary based on what tenant the application is serving. The majority of these are sourced from its settings.json file. This file is tenanted, which means depending on which tenant the Data Viewer is told it's acting as, it will retrieve a different settings.json file from the Config Service. It will always request the file with the following pattern:
+The Data Explorer sources a large amount of its configuration from the [Config Service](#config-service), and a lot of them will vary based on what tenant the application is serving. The majority of these are sourced from its settings.json file. This file is tenanted, which means depending on which tenant the Data Explorer is told it's acting as, it will retrieve a different settings.json file from the Config Service. It will always request the file with the following pattern:
 ```
-{CONFIG_URL}/{tenant}/data-viewer/settings.json
+{CONFIG_URL}/{tenant}/data-explorer/settings.json
 ```
 
-Use the `CONFIG_URL` environment variable to tell the Data Viewer where to find the [Config Service](#config-service). This should be the URL that the Data Viewer uses to connect to it, **not** where the Config Service is hosted from the user's point of view. For example, if hosted on the same box, it might be `http://localhost:5007`.
+Use the `CONFIG_URL` environment variable to tell the Data Explorer where to find the [Config Service](#config-service). This should be the URL that the Data Explorer uses to connect to it, **not** where the Config Service is hosted from the user's point of view. For example, if hosted on the same box, it might be `http://localhost:5007`. If hosted in the same Docker network it might be http://config, assuming `config` is what the Config Service container name is.
 
 The `NODE_ENV` environment variable lets the service know whether it's running in development, test or production.
 
-Like most of the JavaScript components, you can specify what host and port the service should listen on. For the Data Viewer this is done with the following environment variables:
+Like most of the JavaScript components, you can specify what host and port the service should listen on. For the Data Explorer this is done with the following environment variables:
 - `SERVER_HOST`: Sets the host to listen on.
 - `SERVER_PORT`: Which port the service will listen on.
 
-Although the facility exists to specify a secret key with the `SECRET_KEY` environment variable, it's not used anywhere ({Nicolas-Review}), so don't worry about it.
-
 ### The Settings File
 
-Some configuration of the Data Viewer application is done through the settings.json file (held in the [Config Service](#config-service)). It's likely that you'll need to set at least the following value:
+Some configuration of the Data Explorer application is done through the settings.json file (held in the [Config Service](#config-service)). 
+
+
+In order to share charts and tables using Data Explorer, you'll need to set the following property:
 ```javascript
 "share": {
     "endpoint": "http://localhost/share-service"
   },
 ```
 
-The `share:endpoint` property is used to tell the Data Viewer how to contact the [Share Service](#share-service) for the purpose of retrieving chart and table definitions for display. Because this is done from the browser, make sure to use the location the Share Service is viewable from the browser, **not** from the Data Viewer application itself.
-
-Other configuration is largely display-oriented. The `theme:table` object is used to alter the colouring of various aspects of tables that are displayed ({Nicola-Review}: This bit is complete guesswork):
-```javascript
-"theme": {
-  "table": {
-    "yBg": "#B5CEEB", // Background colour of column headers
-    "yBgHover": "#c3d7ef", // This appears to do nothing
-    "yBgActive": "#7e90a4", // This appears to do nothing
-    "yFontHeader": "#1C2768", // Text colour for column headings (i.e. names of the dimensions)
-    "yFont": "#43679F", // Text colour for the column headers (i.e. the dimension values)
-    "zBg": "#386CAA", // Background colour of row sections
-    "zBgHover": "#5f89bb", // This appears to do nothing
-    "zBgActive": "#274b76", // This appears to do nothing
-    "zFontHeader": "#A2C2E4", // Text colour for row section headers (i.e. the names of the dimensions)
-    "zFont": "#FFFFFF", // Text colour for row sections (i.e. the dimension values)
-    "xBg": "#FFFFFF", // Background colour of table cells
-    "xBgHeader": "#D7E6F4", // Background colour of row headers. Also appears to be hover colour for table cells.
-    "xBgHover": "#dfebf6", // This appears to do nothing
-    "xBgActive": "#96a1aa", // This appears to do nothing
-    "xFontHeader": "#1C2768", // Text colour for row headers (including dimension name and values)
-    "xFont": "#43679F", // Text colour of table cells (i.e. the data colour)
-    "oFont": "#494444", // This appears to do nothing
-    "sBg": "#F0F0F0", // Background colour of blank spacing cells (used for formatting... not to be confused with data cells with no values)
-    "border": "#000000" // Colour of table cell borders
-  }
-}
-```
+The `share:endpoint` property is used to tell the Data Explorer how to contact the [Share Service](#share-service) for the purpose of saving chart and table definitions for sharing. Because this is done from the browser, make sure to use the location the Share Service is viewable from the browser, **not** from the Data Explorer application itself.
 
 ### Description
 
-The Data Viewer application is intended to display a single chart or table shared via the [Share Service](#share-service). The chart/table is not alterable like it would be if viewed in [Data Explorer](#data-explorer).
-
-As Data Viewer is a largely browser-based application, it retrieves chart/table definitions from the [Share Service](#share-service) by the user's browser calling the Share Service's API.
-
-Like the [Data Explorer](#data-explorer), the Data Viewer relies on assets (such as CSS files or images) hosted by the [Config Service](#config-service).
 
 ### Deployment Tips
