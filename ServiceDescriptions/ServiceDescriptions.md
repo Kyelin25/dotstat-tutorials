@@ -519,5 +519,8 @@ The `share:endpoint` property is used to tell the Data Explorer how to contact t
 
 ### Description
 
+The Data Explorer application brings together the functionality of many of the other JavaScript services to provide a platform for users to explore one or more SDMX datasources. The core functionality loop involves the user searching for Dataflows using the free-text search, facets (such as clicking through a CategoryScheme) or a combination of the both. Once a Dataflow is found, the Data Explorer can display the data in it in a variety of formats, the main being a customizable table, the others being varieties of charts. Users can filter the data to explore it. The Data Explorer table/chart view also is the method by which users can save and share tables/charts they've built.
+
+The Data Explorer application leverages the [SDMX Faceted Search](#sdmx-faceted-search) for the search functionality, and the [Share Service](#share-service) for the table/chart sharing functionality.
 
 ### Deployment Tips
