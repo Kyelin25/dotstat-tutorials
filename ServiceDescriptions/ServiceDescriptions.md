@@ -71,7 +71,7 @@ Note: As we'll find out later, the Proxy Service is sort of dependent on all the
 In addition to having dependencies on one another, the JavaScript components have dependencies on third-party products. These are:
 - [Solr](#solr): The [SDMX Faceted Search Service](#sdmx-faceted-search) must be able to reach an appropriately configured instance of the [Apache Solr](https://lucene.apache.org/solr/) search platform
 - [Redis](#redis): Both the [SDMX Faceted Search Service](#sdmx-faceted-search) and the [Share Service](#share-service) must be able to reach an appropriately configured instance (or instances... there's no obligation to share an instance) of the [Redis](https://redis.io/) in-memory database
-- [Keycloak](#keycloak): In order to support authentication and authorization, the [Data Lifecycle Manager](#data-lifecycle-manager) expects there to exist an appropriately-configured [Keycloak](https://www.keycloak.org/) server. Note: connections to the Keycloak server are made through the browser, so DLM doesn't need a direct connection.
+- [Keycloak](#keycloak): In order to support authentication and authorization, the [Data Lifecycle Manager](#data-lifecycle-manager) and [Data Explorer](#data-explorer) expects there to exist an appropriately-configured [Keycloak](https://www.keycloak.org/) server. Note: connections to the Keycloak server are made through the browser, so DLM doesn't need a direct connection.
 
 ## Config Service
 
@@ -478,6 +478,7 @@ Like the [Data Explorer](#data-explorer), the Data Viewer relies on assets (such
 - [Share Service](#share-service): Connection through browser required
 - [SDMX Faceted Search](#sdmx-faceted-search): Connection through browser required
 - [Config Service](#config-service): Direct connection and connection through browser required
+- [Keycloak](#keycloak): In order to support authentication and authorization, the Data Explorer expects there to exist an appropriately-configured [Keycloak](https://www.keycloak.org/) server. Note: connections to the Keycloak server are made through the browser, so DLM doesn't need a direct connection.
 
 ### Depended On By
 
@@ -489,7 +490,7 @@ The Data Explorer must be end-user accessible.
 
 ### Configuration Tips
 
-The Data Explorer sources a large amount of its configuration from the [Config Service](#config-service), and a lot of them will vary based on what tenant the application is serving. The majority of these are sourced from its settings.json file. This file is tenanted, which means depending on which tenant the Data Explorer is told it's acting as, it will retrieve a different settings.json file from the Config Service. It will always request the file with the following pattern:
+The Data Explorer sources a large amount of its configuration from the [Config Service](#config-service), and a lot of them will vary based on what tenant the application is serving. The majority of these are sourced from its `settings.json` file. This file is tenanted, which means depending on which tenant the Data Explorer is told it's acting as, it will retrieve a different settings.json file from the Config Service. It will always request the file with the following pattern:
 ```
 {CONFIG_URL}/{tenant}/data-explorer/settings.json
 ```
@@ -502,21 +503,31 @@ Like most of the JavaScript components, you can specify what host and port the s
 - `SERVER_HOST`: Sets the host to listen on.
 - `SERVER_PORT`: Which port the service will listen on.
 
-The `AUTH_SERVER_URL` should be the base URL at which Keycloak is accessible **from the user's browser**. So, you want the protocol and hostname that the browser would use to connect to it, not what Data Explorer would use. For example, if you're running everything locally, it might be `https://localhost:8080`.
+The `AUTH_SERVER_URL` should be the base URL at which Keycloak is accessible **from the user's browser**. So, you want the protocol and hostname that the browser would use to connect to it, not what the Data Explorer server application would use. For example, if you're running everything locally, it might be `https://localhost:8080`.
 
 ### The Settings File
 
 Some configuration of the Data Explorer application is done through the settings.json file (held in the [Config Service](#config-service)). 
 
+The best place to look for detailed information about the settings is in the official documentation for [customisation](https://sis-cc.gitlab.io/dotstatsuite-documentation/configurations/de-customisation/) and [configuration](https://sis-cc.gitlab.io/dotstatsuite-documentation/configurations/de-configuration/) of Data Explorer.
 
-In order to share charts and tables using Data Explorer, you'll need to set the following property:
+In order to share charts and tables using Data Explorer, you'll need to configure the `share` object:
 ```javascript
 "share": {
-    "endpoint": "http://localhost/share-service"
-  },
+    "confirmUrl": "http://localhost/data-viewer",
+    "endpoint": "http://localhost/share-service/api/charts",
+    "policy": "http://www.oecd.org/general/privacypolicy.htm"
+  }
 ```
 
-The `share:endpoint` property is used to tell the Data Explorer how to contact the [Share Service](#share-service) for the purpose of saving chart and table definitions for sharing. Because this is done from the browser, make sure to use the location the Share Service is viewable from the browser, **not** from the Data Explorer application itself.
+The `share:endpoint` property is used to tell the Data Explorer how to contact the [Share Service](#share-service) for the purpose of saving chart and table definitions for sharing. Because this is done from the browser, make sure to use the location the Share Service is viewable from the browser, **not** from the Data Explorer server application itself. The `share:confirmUrl` property should be the URL of the [Data Viewer](#data-viewer) application, and will be included in the email sent from the Share Service. Again, this should be accessible from the browser, not from Data Explorer itself. Finally, the `policy` is the URL of your organization's privacy policy, which will be linked to in the privacy note that appears when a user attempts to share a table/chart.
+
+In order to use the search functionality within Data Explorer, you'll need to at minimum configure the `search:endpoint` property, which is the endpoint the browser should call to perform search actions using the [SDMX Faceted Search](#sdmx-faceted-search):
+```javascript
+"search": {
+    "endpoint": "http://localhost/sdmx-faceted-search/api"
+  },
+```
 
 ### Description
 
@@ -528,3 +539,53 @@ The Data Explorer application leverages the [SDMX Faceted Search](#sdmx-faceted-
 
 - If using the pre-built Data Explorer container, the application **expects** to be hosted at server root. That is, if the domain name it's hosted at is `https://dotstat.organisation.org`, Data Explorer will not behave properly if it's hosted from a subfolder, like `https://dotstat.organisation.org/data-explorer`.
 - If built from source, it might look like you can tell Data Explorer it will be hosted from a subfolder, but at this stage, this will still lead to it behaving incorrectly.
+
+## Data Lifecycle Manager
+
+### Repository
+[dotstatsuite-data-lifecycle-manager](https://gitlab.com/sis-cc/.stat-suite/dotstatsuite-data-lifecycle-manager)
+
+### Depends On
+- [NSI Web Services](#nsi-services): Connection through brower required
+- [Transfer Service](#transfer-service): Connection through brower required. Only required if an internal space is set up in the Data Lifecycle Manager `settings.json` file
+- [Config Service](#config-service): Direct connection and connection through browser required
+- [Keycloak](#keycloak): In order to support authentication and authorization, the Data Lifecycle Manager expects there to exist an appropriately-configured [Keycloak](https://www.keycloak.org/) server. Note: connections to the Keycloak server are made through the browser, so DLM doesn't need a direct connection.
+
+### Depended On By
+
+No components depend directly on the Data Lifecycle Manager.
+
+### End-User Accessibility
+
+The Data Lifecycle Manager must be end-user accessible.
+
+### Configuration Tips
+
+The Data Lifecycle Manager sources a large amount of its configuration from the [Config Service](#config-service), and a lot of them will vary based on what tenant the application is serving. The majority of these are sourced from its `settings.json` file. This file is tenanted, which means depending on which tenant the Data Lifecycle Manager is told it's acting as, it will retrieve a different `settings.json` file from the Config Service. It will always request the file with the following pattern:
+```
+{CONFIG_URL}/{tenant}/data-lifecycle-manager/settings.json
+```
+
+Use the `CONFIG_URL` environment variable to tell the Data Lifecycle Manager where to find the [Config Service](#config-service). This should be the URL that the Data Lifecycle Manager uses to connect to it, **not** where the Config Service is hosted from the user's point of view. For example, if hosted on the same box, it might be `http://localhost:5007`. If hosted in the same Docker network it might be http://config, assuming `config` is what the Config Service container name is.
+
+The `NODE_ENV` environment variable lets the service know whether it's running in development, test or production.
+
+Like most of the JavaScript components, you can specify what host and port the service should listen on. For the Data Lifecycle Manager this is done with the following environment variables:
+- `SERVER_HOST`: Sets the host to listen on.
+- `SERVER_PORT`: Which port the service will listen on.
+
+The `AUTH_SERVER_URL` should be the base URL at which Keycloak is accessible **from the user's browser**. So, you want the protocol and hostname that the browser would use to connect to it, not what the Data Lifecycle Manager server application would use. For example, if you're running everything locally, it might be `https://localhost:8080`.
+
+### The Settings File
+
+Some configuration of the Data Lifecycle Manager application is done through the `settings.json` file (held in the [Config Service](#config-service)). 
+
+The best place to look for detailed information about the settings is in the official documentation for [configuration](https://sis-cc.gitlab.io/dotstatsuite-documentation/configurations/dlm-configuration/) of Data Lifecycle Manager.
+
+### Description
+
+
+### Deployment Tips
+
+- If using the pre-built Data Lifecycle Manager container, the application **expects** to be hosted at server root. That is, if the domain name it's hosted at is `https://dotstat.organisation.org`, Data Lifecycle Manager will not behave properly if it's hosted from a subfolder, like `https://dotstat.organisation.org/data-lifecycle-manager`.
+- If built from source, it might look like you can tell Data Lifecycle Manager it will be hosted from a subfolder, but at this stage, this will still lead to it behaving incorrectly.
