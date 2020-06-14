@@ -465,7 +465,8 @@ Like the [Data Explorer](#data-explorer), the Data Viewer relies on assets (such
 
 ### Deployment Tips
 
-None so far.
+- If using the pre-built Data Viewer container, the application **expects** to be hosted at server root. That is, if the domain name it's hosted at is `https://dotstat.organisation.org`, Data Viewer will not behave properly if it's hosted from a subfolder, like `https://dotstat.organisation.org/data-viewer`.
+- If built from source, you can set the subfolder you want to host Data Viewer from, when building it, in the usual way for setting React apps homepage.
 
 ## Data Explorer
 
@@ -524,3 +525,6 @@ The Data Explorer application brings together the functionality of many of the o
 The Data Explorer application leverages the [SDMX Faceted Search](#sdmx-faceted-search) for the search functionality, and the [Share Service](#share-service) for the table/chart sharing functionality.
 
 ### Deployment Tips
+
+- If using the pre-built Data Explorer container, the application **expects** to be hosted at server root. That is, if the domain name it's hosted at is `https://dotstat.organisation.org`, Data Explorer will not behave properly if it's hosted from a subfolder, like `https://dotstat.organisation.org/data-explorer`.
+- If built from source, it might look like you can tell Data Explorer it will be hosted from a subfolder, but at this stage, this will still lead to it behaving incorrectly.
