@@ -115,6 +115,18 @@ So finally, that's why your application's root URL and star will need to be in t
 
 This setting is all about [Cross-Origin Resource Sharing (CORS)](https://developer.mozilla.org/en-US/docs/Web/HTTP/CORS). CORS is great, but also very frustrating. Again, boiling this down to almost the point of inaccuracy, part of the dance the DotStat browser applications do with Keycloak to obtain their tokens involves them making a POST call to an endpoint on Keycloak, to exchange the authorization code they get from asking Keycloak to log you in for a token, which is what they **really** want. Because Keycloak is not hosted at the same origin (the port is included in determining whether an origin is the same) as the browser applications, the request needs to use CORS. So, Keycloak lets you provide a list of origins that are allowed to send requests. If your application's root url isn't in that list, when it tries to exchange the code for a token, the call will be disallowed by the browser.
 
+#### Back to Configuring a Client
+
+In order for DotStat to accurately perform authorization checks on incoming requests, it needs two claims in the token it receives from Keycloak. The first is the email address of the authenticated user, which is automatically added to the token by Keycloak. The second is which "groups" the user belongs to. Now, by default, DotStat will check a claim named "groups" in the token for a series of strings, which it will treat as the groups the user belongs to. Technically these strings could be sourced from pretty much anywhere. However, in this initial setup we'll be using the Keycloak Groups themselves, and sending Group Membership along with the token.
+
+To set up the client to send Group Membership, we need to click on the Mappers tab, and add a Mapper. This will take us to the "Create Protocol Mapper" page, where we do the following:
+- Name the mapper "Add-Groups", because that's what it does
+- Change the mapper type to Group Membership
+- Set "groups" as the Token Claim Name, because by default that's what DotStat expects
+- Untick the "Full group path" option, because for otherwise the claim doesn't just contain the raw group names
+
+![NewMapperPage](img/ClientAddGroupsMapper.png "The Create Protocol Mapper Page")]
+
 ### Creating a User
 
 Now, if you were using Keycloak in anger, you'd probably be using it as an "Identity Broker", which is how the OECD is using it in their [tenanted deployment](https://sis-cc.gitlab.io/dotstatsuite-documentation/getting-started/devops/). When logging in, users are given the option to use other identity providers like Github, or Google, or Facebook or whoever, as opposed to typing in a username and password.
@@ -134,6 +146,16 @@ Hit "Save".
 Fantastic. Now let's give our new user a password by going to the Credentials tab, entering a new password and unchecking Temporary. Hit "Reset Password".
 
 ![DotStatUserPassword](img/DStatResetPassword.PNG "Reset the Password")
+
+### Making the User an Administrator
+
+In order for us to really begin using DotStat, we need to have a user that DotStat considers to be an administrator. The permissions a user has are controlled via rules in the [Authorization Management Service](https://sis-cc.gitlab.io/dotstatsuite-documentation/using-dlm/manage-user-access/). When you first start up DotStat there will be two rules. The first states that any user with the email "admin" is an administrator, and the second that any user with the group "admins" is an administrator. We'll be creating a Keycloak Group called "admins" and adding our user to it.
+
+To create the group, we click on the Groups link in the left-hand navigation menu. From there we simply click "new", which lets us create a new group, called "admins".
+
+![CreateAdminsGroup](img/CreateAdminsGroup.png "Create Admins Group")
+
+Once we have done this, we can navigate back to the user, click on their "Groups" tab, and add them to the "admins" group. Now, when a token is issued for the user it should contain the claim "groups" with the string "admins" in there, which will let DotStat know that they're an administrator.
 
 ### Making DotStat Use Your Keycloak
 
